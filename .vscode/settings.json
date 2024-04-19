@@ -3,5 +3,15 @@
   "editor.defaultFormatter": "trunk.io",
   "trunk.enableWindows": true,
   "files.insertFinalNewline": false,
-  "files.trimFinalNewlines": false
+  "files.trimFinalNewlines": false,
+  "svn.ignoreMissingSvnWarning": true,
+  "files.associations": {
+    "*.cl": "opencl",
+    "*.j2": "jinja-html",
+    "*.xml": "xml",
+    "*.py": "python",
+    "*.html": "html",
+    "*.el": "plaintext",
+    "*.tpp": "cpp"
+  }
 }

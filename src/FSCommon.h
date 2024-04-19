@@ -38,6 +38,15 @@ using namespace LittleFS_Namespace;
 #define FILE_O_READ "r"
 #endif
 
+#if defined(ARCH_ESP8266)
+// ESP8266 version
+#include "LittleFS.h"
+#define FSCom LittleFS
+#define FSBegin() FSCom.begin() // format on failure
+#define FILE_O_WRITE "w"
+#define FILE_O_READ "r"
+#endif
+
 #if defined(ARCH_NRF52)
 // NRF52 version
 #include "InternalFileSystem.h"

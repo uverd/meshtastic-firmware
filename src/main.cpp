@@ -150,10 +150,12 @@ uint32_t serialSinceMsec;
 
 bool pmu_found;
 
-// Array map of sensor types with i2c address and wire as we'll find in the i2c scan
+// Array map of sensor types with i2c address and wire as we'll find in the i2c
+// scan
 std::pair<uint8_t, TwoWire *> nodeTelemetrySensorsMap[_meshtastic_TelemetrySensorType_MAX + 1] = {};
 
-Router *router = NULL; // Users of router don't care what sort of subclass implements that API
+Router *router = NULL; // Users of router don't care what sort of subclass
+                       // implements that API
 
 const char *getDeviceName()
 {
@@ -164,7 +166,8 @@ const char *getDeviceName()
     // Meshtastic_ab3c or Shortname_abcd
     static char name[20];
     snprintf(name, sizeof(name), "%02x%02x", dmac[4], dmac[5]);
-    // if the shortname exists and is NOT the new default of ab3c, use it for BLE name.
+    // if the shortname exists and is NOT the new default of ab3c, use it for BLE
+    // name.
     if ((owner.short_name != NULL) && (strcmp(owner.short_name, name) != 0)) {
         snprintf(name, sizeof(name), "%s_%02x%02x", owner.short_name, dmac[4], dmac[5]);
     } else {
@@ -180,7 +183,8 @@ static int32_t ledBlinker()
 
     setLed(ledOn);
 
-    // have a very sparse duty cycle of LED being on, unless charging, then blink 0.5Hz square wave rate to indicate that
+    // have a very sparse duty cycle of LED being on, unless charging, then blink
+    // 0.5Hz square wave rate to indicate that
     return powerStatus->getIsCharging() ? 1000 : (ledOn ? 1 : 1000);
 }
 
@@ -198,7 +202,8 @@ SPISettings spiSettings(4000000, MSBFIRST, SPI_MODE0);
 RadioInterface *rIf = NULL;
 
 /**
- * Some platforms (nrf52) might provide an alterate version that suppresses calling delay from sleep.
+ * Some platforms (nrf52) might provide an alterate version that suppresses
+ * calling delay from sleep.
  */
 __attribute__((weak, noinline)) bool loopCanSleep()
 {
@@ -247,8 +252,9 @@ void setup()
 #if defined(VEXT_ENABLE_V03)
     pinMode(VEXT_ENABLE_V03, OUTPUT);
     pinMode(ST7735_BL_V03, OUTPUT);
-    digitalWrite(VEXT_ENABLE_V03, 0); // turn on the display power and antenna boost
-    digitalWrite(ST7735_BL_V03, 1);   // display backligth on
+    digitalWrite(VEXT_ENABLE_V03,
+                 0);                // turn on the display power and antenna boost
+    digitalWrite(ST7735_BL_V03, 1); // display backligth on
     LOG_DEBUG("HELTEC Detect Tracker V1.0\n");
 #elif defined(VEXT_ENABLE_V05)
     pinMode(VEXT_ENABLE_V05, OUTPUT);
@@ -309,14 +315,18 @@ void setup()
 
 #if defined(_SEEED_XIAO_NRF52840_SENSE_H_)
 
-    pinMode(CHARGE_LED, INPUT); // sets to detect if charge LED is on or off to see if USB is plugged in
+    pinMode(CHARGE_LED, INPUT); // sets to detect if charge LED is on or off to
+                                // see if USB is plugged in
 
     pinMode(HICHG, OUTPUT);
-    digitalWrite(HICHG, LOW); // 100 mA charging current if set to LOW and 50mA (actually about 20mA) if set to HIGH
+    digitalWrite(HICHG, LOW); // 100 mA charging current if set to LOW and 50mA
+                              // (actually about 20mA) if set to HIGH
 
     pinMode(BAT_READ, OUTPUT);
-    digitalWrite(BAT_READ, LOW); // This is pin P0_14 = 14 and by pullling low to GND it provices path to read on pin 32 (P0,31)
-                                 // PIN_VBAT the voltage from divider on XIAO board
+    digitalWrite(BAT_READ,
+                 LOW); // This is pin P0_14 = 14 and by pullling low to GND it
+                       // provices path to read on pin 32 (P0,31) PIN_VBAT the
+                       // voltage from divider on XIAO board
 
 #endif
 
@@ -371,8 +381,8 @@ void setup()
     // enable keyboard
     pinMode(KB_POWERON, OUTPUT);
     digitalWrite(KB_POWERON, HIGH);
-    // There needs to be a delay after power on, give LILYGO-KEYBOARD some startup time
-    // otherwise keyboard and touch screen will not work
+    // There needs to be a delay after power on, give LILYGO-KEYBOARD some startup
+    // time otherwise keyboard and touch screen will not work
     delay(800);
 #endif
 
@@ -381,10 +391,11 @@ void setup()
     power = new Power();
     power->setStatusHandler(powerStatus);
     powerStatus->observe(&power->newStatus);
-    power->setup(); // Must be after status handler is installed, so that handler gets notified of the initial configuration
+    power->setup(); // Must be after status handler is installed, so that handler
+                    // gets notified of the initial configuration
 
-    // We need to scan here to decide if we have a screen for nodeDB.init() and because power has been applied to
-    // accessories
+    // We need to scan here to decide if we have a screen for nodeDB.init() and
+    // because power has been applied to accessories
     auto i2cScanner = std::unique_ptr<ScanI2CTwoWire>(new ScanI2CTwoWire());
 #ifdef HAS_WIRE
     LOG_INFO("Scanning for i2c devices...\n");
@@ -420,7 +431,7 @@ void setup()
     auto i2cCount = i2cScanner->countDevices();
     if (i2cCount == 0) {
         LOG_INFO("No I2C devices found\n");
-        Wire.end();
+        // Wire.end();
 #ifdef I2C_SDA1
         Wire1.end();
 #endif
@@ -429,7 +440,8 @@ void setup()
     }
 
 #ifdef ARCH_ESP32
-    // Don't init display if we don't have one or we are waking headless due to a timer event
+    // Don't init display if we don't have one or we are waking headless due to a
+    // timer event
     if (wakeCause == ESP_SLEEP_WAKEUP_TIMER) {
         LOG_DEBUG("suppress screen wake because this is a headless timer wakeup");
         i2cScanner->setSuppressScreen();
@@ -488,9 +500,9 @@ void setup()
     pmu_found = i2cScanner->exists(ScanI2C::DeviceType::PMU_AXP192_AXP2101);
 
 /*
- * There are a bunch of sensors that have no further logic than to be found and stuffed into the
- * nodeTelemetrySensorsMap singleton. This wraps that logic in a temporary scope to declare the temporary field
- * "found".
+ * There are a bunch of sensors that have no further logic than to be found and
+ * stuffed into the nodeTelemetrySensorsMap singleton. This wraps that logic in
+ * a temporary scope to declare the temporary field "found".
  */
 
 // Only one supported RGB LED currently
@@ -566,10 +578,12 @@ void setup()
 #endif
 
     // We do this as early as possible because this loads preferences from flash
-    // but we need to do this after main cpu init (esp32setup), because we need the random seed set
+    // but we need to do this after main cpu init (esp32setup), because we need
+    // the random seed set
     nodeDB = new NodeDB;
 
-    // If we're taking on the repeater role, use flood router and turn off 3V3_S rail because peripherals are not needed
+    // If we're taking on the repeater role, use flood router and turn off 3V3_S
+    // rail because peripherals are not needed
     if (config.device.role == meshtastic_Config_DeviceConfig_Role_REPEATER) {
         router = new FloodingRouter();
 #ifdef PIN_3V3_EN
@@ -604,12 +618,14 @@ void setup()
 #endif
 
 #if defined(USE_SH1107)
-    screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // set dimension of 128x128
+    screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // set dimension of
+                                                                         // 128x128
     display_geometry = GEOMETRY_128_128;
 #endif
 
 #if defined(USE_SH1107_128_64)
-    screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // keep dimension of 128x64
+    screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // keep dimension of
+                                                                         // 128x64
 #endif
 
 #if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
@@ -660,7 +676,8 @@ void setup()
     SPI.setFrequency(4000000);
 #endif
 
-    // Initialize the screen first so we can show the logo while we start up everything else.
+    // Initialize the screen first so we can show the logo while we start up
+    // everything else.
     screen = new graphics::Screen(screen_found, screen_model, screen_geometry);
 
     // setup TZ prior to time actions.
@@ -672,7 +689,8 @@ void setup()
     tzset();
     LOG_DEBUG("Set Timezone to %s\n", getenv("TZ"));
 
-    readFromRTC(); // read the main CPU RTC at first (in case we can't get GPS time)
+    readFromRTC(); // read the main CPU RTC at first (in case we can't get GPS
+                   // time)
 
 #if !MESHTASTIC_EXCLUDE_GPS
     // If we're taking on the repeater role, ignore GPS
@@ -704,7 +722,8 @@ void setup()
 // Do this after service.init (because that clears error_code)
 #ifdef HAS_PMU
     if (!pmu_found)
-        RECORD_CRITICALERROR(meshtastic_CriticalErrorCode_NO_AXP192); // Record a hardware fault for missing hardware
+        RECORD_CRITICALERROR(meshtastic_CriticalErrorCode_NO_AXP192); // Record a hardware fault for
+                                                                      // missing hardware
 #endif
 
 // Don't call screen setup until after nodedb is setup (because we need
@@ -786,7 +805,8 @@ void setup()
     LockingArduinoHal *RadioLibHAL = new LockingArduinoHal(SPI, spiSettings);
 #endif
 
-    // radio init MUST BE AFTER service.init, so we have our radio config settings (from nodedb init)
+    // radio init MUST BE AFTER service.init, so we have our radio config settings
+    // (from nodedb init)
 #if defined(USE_STM32WLx)
     if (!rIf) {
         rIf = new STM32WLE5JCInterface(RadioLibHAL, SX126X_CS, SX126X_DIO1, SX126X_RESET, SX126X_BUSY);
@@ -936,17 +956,22 @@ void setup()
                                                          1000);
     }
 
-    // This must be _after_ service.init because we need our preferences loaded from flash to have proper timeout values
-    PowerFSM_setup(); // we will transition to ON in a couple of seconds, FIXME, only do this for cold boots, not waking from SDS
+    // This must be _after_ service.init because we need our preferences loaded
+    // from flash to have proper timeout values
+    PowerFSM_setup(); // we will transition to ON in a couple of seconds, FIXME,
+                      // only do this for cold boots, not waking from SDS
     powerFSMthread = new PowerFSMThread();
     setCPUFast(false); // 80MHz is fine for our slow peripherals
 }
 
-uint32_t rebootAtMsec;   // If not zero we will reboot at this time (used to reboot shortly after the update completes)
-uint32_t shutdownAtMsec; // If not zero we will shutdown at this time (used to shutdown from python or mobile client)
+uint32_t rebootAtMsec;   // If not zero we will reboot at this time (used to
+                         // reboot shortly after the update completes)
+uint32_t shutdownAtMsec; // If not zero we will shutdown at this time (used to
+                         // shutdown from python or mobile client)
 
-// If a thread does something that might need for it to be rescheduled ASAP it can set this flag
-// This will suppress the current delay and instead try to run ASAP.
+// If a thread does something that might need for it to be rescheduled ASAP it
+// can set this flag This will suppress the current delay and instead try to run
+// ASAP.
 bool runASAP;
 
 extern meshtastic_DeviceMetadata getDeviceMetadata()
@@ -971,7 +996,8 @@ void loop()
 
     // axpDebugOutput.loop();
 
-    // heap_caps_check_integrity_all(true); // FIXME - disable this expensive check
+    // heap_caps_check_integrity_all(true); // FIXME - disable this expensive
+    // check
 
 #ifdef ARCH_ESP32
     esp32Loop();
@@ -1000,7 +1026,8 @@ void loop()
     long delayMsec = mainController.runOrDelay();
 
     /* if (mainController.nextThread && delayMsec)
-        LOG_DEBUG("Next %s in %ld\n", mainController.nextThread->ThreadName.c_str(),
+        LOG_DEBUG("Next %s in %ld\n",
+       mainController.nextThread->ThreadName.c_str(),
                   mainController.nextThread->tillRun(millis())); */
 
     // We want to sleep as long as possible here - because it saves power

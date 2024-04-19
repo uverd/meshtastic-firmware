@@ -2,12 +2,12 @@
 #include "NodeDB.h"
 #include "configuration.h"
 
-#if !defined(ARCH_ESP32) && !defined(ARCH_RP2040) && !defined(ARCH_PORTDUINO)
-#include "Tone.h"
+#if !defined(ARCH_ESP32) && !defined(ARCH_ESP8266) && !defined(ARCH_RP2040) && !defined(ARCH_PORTDUINO)
+// #include "Tone.h"
 #endif
 
 #if !defined(ARCH_PORTDUINO)
-extern "C" void delay(uint32_t dwMs);
+// extern "C" void delay(uint32_t dwMs);
 #endif
 
 struct ToneDuration {
