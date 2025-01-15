@@ -1,10 +1,11 @@
 #pragma once
 #include "ProtobufModule.h"
 
+#include "generated/meshtastic/treeshake.pb.h"
 /**
  * TreeShake module for sending/receiving TreeShakes into the mesh
  */
-class TreeShakeModule : public ProtobufModule<meshtastic_User>, private concurrency::OSThread
+class TreeShakeModule : public ProtobufModule<meshtastic_TreeShake>, private concurrency::OSThread
 {
     /// The id of the last packet we sent, to allow us to cancel it if we make something fresher
     PacketId prevPacketId = 0;
@@ -28,7 +29,7 @@ class TreeShakeModule : public ProtobufModule<meshtastic_User>, private concurre
 
     @return true if you've guaranteed you've handled this message and no other handlers should be considered for it
     */
-    virtual bool handleReceivedProtobuf(const meshtastic_MeshPacket &mp, meshtastic_User *p) override;
+    virtual bool handleReceivedProtobuf(const meshtastic_MeshPacket &mp, meshtastic_TreeShake *p) override;
 
     /** Messages can be received that have the want_response bit set.  If set, this callback will be invoked
      * so that subclasses can (optionally) send a response back to the original sender.  */

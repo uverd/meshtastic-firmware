@@ -7,6 +7,7 @@
 #include "sensorManager.h"
 #include "powerManager.h"
 #include "spiffsManager.h"
+#include "generated/meshtastic/treeshake.pb.h"
 
 MPU6050 mpu;
 volatile bool wakeup_flag = false;
@@ -200,6 +201,14 @@ void performFFT() {
     } else {
         Serial.println("No significant cutting activity detected.");
     }
+}
+
+
+void readSensorsToPB(meshtastic_TreeShake & msg){
+    msg.max_machete_magnitude = max_machete_magnitude;
+    msg.max_chainsaw_magnitude = max_chainsaw_magnitude;
+    msg.max_axe_magnitude = max_axe_magnitude;
+    msg.max_saw_magnitude = max_saw_magnitude;
 }
 
 
