@@ -40,3 +40,21 @@
 
 #define SX126X_DIO2_AS_RF_SWITCH
 #define SX126X_DIO3_TCXO_VOLTAGE 1.8
+
+
+// Pin Definitions
+// #define LED_PIN GPIO_NUM_3
+#define VEXT_CTRL_PIN GPIO_NUM_36
+#define INTERRUPT_PIN GPIO_NUM_7
+#define STATUS_LED_PIN GPIO_NUM_4
+
+// Timing Definitions
+#define SAMPLES 128
+#define PHASE_DURATION 30000 // 30 seconds for each phase
+#define CYCLES_FOR_5_MIN 10  // 5 minutes = 10 cycles of 30 seconds
+#define UV_BLOCK_SIZE 32
+#define SAMPLE_RATE 50
+#define MAX_SAMPLES (SAMPLE_RATE * (PHASE_DURATION / 1000))
+#define FILENAME_FORMAT "/data_phase_%d.csv"
+#define PRE_TOGGLE_DELAY 1500  // Delay before toggling accelerometer power
+#define MAX_SPIFFS_USAGE 30000 // Max limit of used space in bytes (30KB)\
