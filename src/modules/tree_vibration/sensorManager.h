@@ -10,7 +10,7 @@ extern int remainingCycles;
 extern float inputBuffer[];
 
 bool setupSensors();
-void monitorSensors();
+bool monitorSensors();
 void readSensorsToPB(meshtastic_TreeShake & msg);
 bool initializeMPU();
 void readAccelerometerDataForPhase(int phase);

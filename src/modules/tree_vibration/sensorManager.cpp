@@ -86,12 +86,12 @@ bool initializeMPU() {
     return true;
 }
 
-void monitorSensors() {
+bool monitorSensors() {
     bool significantActivityDetected = false;
 
     if (remainingCycles <= 0) {
         quickBlinkAndHalt();  // Stop the system if out of cycles
-        return;
+        return false;
     }
 
     unsigned long startTime = millis();
@@ -112,22 +112,34 @@ void monitorSensors() {
         // Run FFT analysis and check for activity
         performFFT();
         
+        //TODO: this should be a function bool significantActivityDetected()
+        // BUG: Seems to be missing max_saw_magnitude
         if (max_axe_magnitude > SOME_THRESHOLD || 
             max_chainsaw_magnitude > SOME_THRESHOLD || 
             max_machete_magnitude > MACHETE_THRESHOLD) {
             significantActivityDetected = true;
         }
 
+        // TODO this should be refactored, for now just return true here and call the enterDeepSleep from outside
         if (!significantActivityDetected && millis() - startTime >= 70000) {
+            return true;
             // If no activity is detected within 70 seconds, enter deep sleep
             enterDeepSleep();
         }
 
         toggleSensorPower(false);  // Power off MPU
         delay(5000);  // Delay for MPU stabilization
+        return false;
     }
-
     remainingCycles--;
+    //TODO: this should probably happen inside a loop? 
+    // like this maybe:
+    // void monitorFor5Min(){
+    //     for (int i = 0; i < 10; ++i){
+    //         if (monitorSensors(i)) // return when reading something above threshold, 
+    //            return;
+    //     }
+    // }
 }
 
 
@@ -164,6 +176,8 @@ void performFFT() {
 
     fft_execute(real_fft_plan);
 
+    // TODO: this should probably be in MonitorSensors before we do anything, 
+    //      so we collect the max values over several runs
     max_axe_magnitude = 0;
     max_saw_magnitude = 0;
     max_chainsaw_magnitude = 0;
@@ -177,7 +191,9 @@ void performFFT() {
         Serial.printf("Frequency: %f Hz, Magnitude: %f\n", frequency, magnitude);
 
         if (frequency >= AXE_MIN_FREQ && frequency <= AXE_MAX_FREQ) {
-            if (magnitude > max_axe_magnitude) max_axe_magnitude = magnitude;
+            // if (magnitude > max_axe_magnitude) max_axe_magnitude = magnitude;
+            //TODO: this is a more canonical and easy to read way to do this kind of thing:
+            max_axe_magnitude = std::max(max_axe_magnitude , magnitude);
         } else if (frequency >= SAW_MIN_FREQ && frequency <= SAW_MAX_FREQ) {
             if (magnitude > max_saw_magnitude) max_saw_magnitude = magnitude;
         } else if (frequency >= CHAINSAW_MIN_FREQ && frequency <= CHAINSAW_MAX_FREQ) {
@@ -189,6 +205,7 @@ void performFFT() {
 
     fft_destroy(real_fft_plan);
 
+    //TODO we probably don't need this anymore, maybe put a #ifdef guard around it so you can enable it for debugging
     // Decision logic
     if (max_machete_magnitude > MACHETE_THRESHOLD) {
         Serial.println("Machete impact detected!");

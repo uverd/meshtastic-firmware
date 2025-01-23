@@ -19,6 +19,8 @@ TreeShakeModule *treeShakeModule;
 
 bool TreeShakeModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, meshtastic_TreeShake *pptr)
 {
+
+
     // auto p = *pptr;
 
     // bool hasChanged = nodeDB->updateUser(getFrom(&mp), p, mp.channel);
@@ -84,16 +86,20 @@ meshtastic_MeshPacket *TreeShakeModule::allocReply()
         LOG_DEBUG("Skip send TreeShake since we sent it <5min ago");
         ignoreRequest = true; // Mark it as ignored for MeshModule
         return NULL;
-    } else if (shorterTimeout && lastSentToMesh && Throttle::isWithinTimespanMs(lastSentToMesh, 60 * 1000)) {
-        LOG_DEBUG("Skip send TreeShake since we sent it <60s ago");
-        ignoreRequest = true; // Mark it as ignored for MeshModule
-        return NULL;
     } else {
         ignoreRequest = false; // Don't ignore requests anymore
         meshtastic_TreeShake data;
+        //TODO: replace with readSensorFor5Min()
         monitorSensors();
         readSensorsToPB(data);
+
         lastSentToMesh = millis();
+        //TODO: enterDeepSleep should be here
+        //TODO: deep sleep logic shold be something like this:
+        // if significantActivityDetected we should only go to deep sleep after waiting that our message has been received ack=1 or something like that
+        // else we could go to deep sleep after a delay which should happen in a new thread or something
+        //TODO research send acknowledgement and threads in meshtastic
+        
         return allocDataProtobuf(data);
     }
 }
@@ -103,22 +109,23 @@ TreeShakeModule::TreeShakeModule()
     : ProtobufModule("treeshake", meshtastic_PortNum_PRIVATE_APP, &meshtastic_TreeShake_msg), concurrency::OSThread("TreeShake")
 {
 
-    Serial.println("Starting setup...");
+    LOG_INFO("Starting setup...");
 
     setupPower();               // Power up Vext
     delay(3000);                // Allow extra time for MPU6050 to stabilize
 
     if (!setupSensors()) {      // Initialize sensors and check for success
-        Serial.println("Sensor setup failed. Restarting...");
-        while (1);              // Halt if setup fails, for debugging
+        LOG_INFO("Sensor setup failed.");
+        //while (1);              // Halt if setup fails, for debugging
+        LOG_INFO("We don't care!!");
     }
 
-    Serial.println("Setting up SPIFFS...");
+    LOG_INFO("Setting up SPIFFS...");
     setupSPIFFS();              // Only set up SPIFFS after sensor initialization
 
-    Serial.println("Setting up commands...");
+    LOG_INFO("Setting up commands...");
     setupCommands();            // Initialize command handler for serial commands
-    Serial.println("Setup complete.");
+    LOG_INFO("Setup complete.");
 
     isPromiscuous = true; // We always want to update our nodedb, even if we are sniffing on others
     setIntervalFromNow(30 *
@@ -128,12 +135,13 @@ TreeShakeModule::TreeShakeModule()
 int32_t TreeShakeModule::runOnce()
 {
     // If we changed channels, ask everyone else for their latest info
-    bool requestReplies = currentGeneration != radioGeneration;
+    // bool requestReplies = currentGeneration != radioGeneration;
+    bool requestReplies = true;
     currentGeneration = radioGeneration;
 
     if (airTime->isTxAllowedAirUtil() && config.device.role != meshtastic_Config_DeviceConfig_Role_CLIENT_HIDDEN) {
         LOG_INFO("Send our treeshake to mesh (wantReplies=%d)", requestReplies);
-        sendOurTreeShake(NODENUM_BROADCAST, requestReplies); // Send our info (don't request replies)
+        sendOurTreeShake(NODENUM_BROADCAST, requestReplies); // Send our info
     }
     return Default::getConfiguredOrDefaultMs(config.device.node_info_broadcast_secs, default_node_info_broadcast_secs);
 }
