@@ -1,0 +1,11 @@
+{
+  "name": "meshtastic-firmware",
+  "version": "1.0.0",
+  "scripts": {
+    "fmt": "trunk fmt",
+    "check": "trunk check"
+  },
+  "devDependencies": {
+    "@trunkio/launcher": "^1.3.4"
+  }
+}

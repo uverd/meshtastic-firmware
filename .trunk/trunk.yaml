@@ -34,6 +34,21 @@ lint:
     - linters: [ALL]
       paths:
         - bin/**
+        - node_modules/**
+        - .trunk/**
+    - linters: [checkov]
+      paths:
+        - Dockerfile
+        - alpine.Dockerfile
+        - userPrefs.jsonc
+    - linters: [hadolint]
+      paths:
+        - Dockerfile
+        - alpine.Dockerfile
+    - linters: [markdownlint]
+      paths:
+        - variants/diy/nrf52_promicro_diy_tcxo/readme.md
+
 runtimes:
   enabled:
     - python@3.10.8
