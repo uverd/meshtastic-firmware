@@ -150,7 +150,6 @@ static const uint8_t SCK = PIN_SPI_SCK;
 #define PIN_QSPI_IO2 28
 #define PIN_QSPI_IO3 2
 
-
 /* @note RAK5005-O GPIO mapping to RAK4631 GPIO ports
    RAK5005-O <->  nRF52840
    IO1       <->  P0.17 (Arduino GPIO number 17)
@@ -219,7 +218,7 @@ SO GPIO 39/TXEN MAY NOT BE DEFINED FOR SUCCESSFUL OPERATION OF THE SX1262 - TG
 #define GPS_TX_PIN PIN_SERIAL1_TX
 
 // RAK WISMESHTAG
-#define PIN_BUZZER 21 
+#define PIN_BUZZER 21
 
 // Battery
 // The battery sense is hooked to pin A0 (5)
