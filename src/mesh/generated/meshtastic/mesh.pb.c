@@ -21,9 +21,6 @@ PB_BIND(meshtastic_Routing, meshtastic_Routing, AUTO)
 PB_BIND(meshtastic_Data, meshtastic_Data, 2)
 
 
-PB_BIND(meshtastic_KeyVerification, meshtastic_KeyVerification, AUTO)
-
-
 PB_BIND(meshtastic_Waypoint, meshtastic_Waypoint, AUTO)
 
 
@@ -49,21 +46,6 @@ PB_BIND(meshtastic_FromRadio, meshtastic_FromRadio, 2)
 
 
 PB_BIND(meshtastic_ClientNotification, meshtastic_ClientNotification, 2)
-
-
-PB_BIND(meshtastic_KeyVerificationNumberInform, meshtastic_KeyVerificationNumberInform, AUTO)
-
-
-PB_BIND(meshtastic_KeyVerificationNumberRequest, meshtastic_KeyVerificationNumberRequest, AUTO)
-
-
-PB_BIND(meshtastic_KeyVerificationFinal, meshtastic_KeyVerificationFinal, AUTO)
-
-
-PB_BIND(meshtastic_DuplicatedPublicKey, meshtastic_DuplicatedPublicKey, AUTO)
-
-
-PB_BIND(meshtastic_LowEntropyKey, meshtastic_LowEntropyKey, AUTO)
 
 
 PB_BIND(meshtastic_FileInfo, meshtastic_FileInfo, AUTO)
