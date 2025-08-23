@@ -1,3 +1,5 @@
+#pragma once
+
 #define LED_PIN LED
 
 #define USE_SSD1306 // Heltec_v3 has a SSD1306 display
@@ -40,3 +42,28 @@
 
 #define SX126X_DIO2_AS_RF_SWITCH
 #define SX126X_DIO3_TCXO_VOLTAGE 1.8
+
+#ifndef HW_VENDOR
+#define HW_VENDOR meshtastic_HardwareModel_HELTEC_V3
+#endif
+
+// Make sure the board-id macro is present for any board-specific #ifdefs.
+#ifndef HELTEC_V3
+#define HELTEC_V3 1
+#endif
+
+// You said you don't want the OLED compiled in your build.
+// Only advertise the screen if the screen module is NOT excluded.
+#if !defined(MESHTASTIC_EXCLUDE_SCREEN)
+#ifndef USE_SSD1306
+#define USE_SSD1306
+#endif
+#else
+// If something included this header earlier, force it OFF here
+#ifdef USE_SSD1306
+#undef USE_SSD1306
+#endif
+#endif
+
+// VEXT is correct for Heltec; keep as-is.
+// #define VEXT_ENABLE Vext

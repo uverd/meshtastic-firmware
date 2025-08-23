@@ -40,8 +40,10 @@
 #include "modules/PositionModule.h"
 #endif
 
-#if !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C
+// Only pull in motion when core motion is enabled and I2C exists
+#if !defined(TG_DISABLE_CORE_MOTION) && !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C
 #include "motion/AccelerometerThread.h"
+extern AccelerometerThread *accelerometerThread;
 #endif
 
 AdminModule *adminModule;
@@ -579,9 +581,10 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
     case meshtastic_Config_device_tag:
         LOG_INFO("Set config: Device");
         config.has_device = true;
-#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
+#if !defined(TG_DISABLE_CORE_MOTION) && !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL) &&                                    \
+    !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
         if (config.device.double_tap_as_button_press == false && c.payload_variant.device.double_tap_as_button_press == true &&
-            accelerometerThread->enabled == false) {
+            accelerometerThread && accelerometerThread->enabled == false) {
             config.device.double_tap_as_button_press = c.payload_variant.device.double_tap_as_button_press;
             accelerometerThread->enabled = true;
             accelerometerThread->start();
@@ -679,7 +682,8 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
                    c.payload_variant.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_COLOR) {
             config.bluetooth.enabled = false;
         }
-#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
+#if !defined(TG_DISABLE_CORE_MOTION) && !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL) &&                                    \
+    !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
         if (config.display.wake_on_tap_or_motion == false && c.payload_variant.display.wake_on_tap_or_motion == true &&
             accelerometerThread->enabled == false) {
             config.display.wake_on_tap_or_motion = c.payload_variant.display.wake_on_tap_or_motion;

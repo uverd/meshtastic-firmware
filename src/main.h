@@ -13,6 +13,7 @@
 #include <map>
 #if defined(ARCH_ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S2)
 #include "nimble/NimbleBluetooth.h"
+
 extern NimbleBluetooth *nimbleBluetooth;
 #endif
 #ifdef ARCH_NRF52
@@ -59,7 +60,7 @@ extern UdpMulticastHandler *udpHandler;
 // Global Screen singleton.
 extern graphics::Screen *screen;
 
-#if !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C
+#if !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C && !defined(TG_DISABLE_CORE_MOTION)
 #include "motion/AccelerometerThread.h"
 extern AccelerometerThread *accelerometerThread;
 #endif

@@ -122,9 +122,15 @@ ButtonThread *CancelButtonThread = nullptr;
 #include "AmbientLightingThread.h"
 #include "PowerFSMThread.h"
 
-#if !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C
-#include "motion/AccelerometerThread.h"
-AccelerometerThread *accelerometerThread = nullptr;
+// #if !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C
+// #include "motion/AccelerometerThread.h"
+// AccelerometerThread *accelerometerThread = nullptr;
+// #endif
+
+#if !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C && !defined(TG_DISABLE_CORE_MOTION)
+if (acc_info.type != ScanI2C::DeviceType::NONE) {
+    accelerometerThread = new AccelerometerThread(acc_info.type);
+}
 #endif
 
 #ifdef HAS_I2S
@@ -289,6 +295,7 @@ void printInfo()
     LOG_INFO("S:B:%d,%s,%s,%s", HW_VENDOR, optstr(APP_VERSION), optstr(APP_ENV), optstr(APP_REPO));
 }
 #ifndef PIO_UNIT_TESTING
+
 void setup()
 {
 
@@ -755,11 +762,14 @@ void setup()
     screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // keep dimension of 128x64
 #endif
 
-#if !MESHTASTIC_EXCLUDE_I2C
+#if !MESHTASTIC_EXCLUDE_I2C && !defined(TG_DISABLE_CORE_MOTION)
+#include "motion/AccelerometerThread.h"
+    AccelerometerThread *accelerometerThread = nullptr;
 #if !defined(ARCH_STM32WL)
     if (acc_info.type != ScanI2C::DeviceType::NONE) {
         accelerometerThread = new AccelerometerThread(acc_info.type);
     }
+#endif
 #endif
 
 #if defined(HAS_NEOPIXEL) || defined(UNPHONE) || defined(RGBLED_RED)
@@ -768,7 +778,6 @@ void setup()
     if (rgb_found.type != ScanI2C::DeviceType::NONE) {
         ambientLightingThread = new AmbientLightingThread(rgb_found.type);
     }
-#endif
 #endif
 
 #ifdef T_WATCH_S3
@@ -800,7 +809,7 @@ void setup()
 #elif !defined(ARCH_ESP32) // ARCH_RP2040
     SPI.begin();
 #else
-        // ESP32
+// ESP32
 #if defined(HW_SPI1_DEVICE)
     SPI1.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
     LOG_DEBUG("SPI1.begin(SCK=%d, MISO=%d, MOSI=%d, NSS=%d)", LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
