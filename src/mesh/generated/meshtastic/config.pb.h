@@ -207,10 +207,10 @@ typedef enum _meshtastic_Config_DisplayConfig_OledType {
     meshtastic_Config_DisplayConfig_OledType_OLED_SSD1306 = 1,
     /* Default / Autodetect */
     meshtastic_Config_DisplayConfig_OledType_OLED_SH1106 = 2,
-    /* Can not be auto detected but set by proto. Used for 128x128 screens */
-    meshtastic_Config_DisplayConfig_OledType_OLED_SH1107 = 3,
     /* Can not be auto detected but set by proto. Used for 128x64 screens */
-    meshtastic_Config_DisplayConfig_OledType_OLED_SH1107_128_64 = 4
+    meshtastic_Config_DisplayConfig_OledType_OLED_SH1107 = 3,
+    /* Can not be auto detected but set by proto. Used for 128x128 screens */
+    meshtastic_Config_DisplayConfig_OledType_OLED_SH1107_128_128 = 4
 } meshtastic_Config_DisplayConfig_OledType;
 
 typedef enum _meshtastic_Config_DisplayConfig_DisplayMode {
@@ -293,7 +293,11 @@ typedef enum _meshtastic_Config_LoRaConfig_RegionCode {
     /* Kazakhstan 433MHz */
     meshtastic_Config_LoRaConfig_RegionCode_KZ_433 = 23,
     /* Kazakhstan 863MHz */
-    meshtastic_Config_LoRaConfig_RegionCode_KZ_863 = 24
+    meshtastic_Config_LoRaConfig_RegionCode_KZ_863 = 24,
+    /* Nepal 865MHz */
+    meshtastic_Config_LoRaConfig_RegionCode_NP_865 = 25,
+    /* Brazil 902MHz */
+    meshtastic_Config_LoRaConfig_RegionCode_BR_902 = 26
 } meshtastic_Config_LoRaConfig_RegionCode;
 
 /* Standard predefined channel settings
@@ -480,7 +484,8 @@ typedef struct _meshtastic_Config_DisplayConfig {
     /* Number of seconds the screen stays on after pressing the user button or receiving a message
  0 for default of one minute MAXUINT for always on */
     uint32_t screen_on_secs;
-    /* How the GPS coordinates are formatted on the OLED screen. */
+    /* Deprecated in 2.7.4: Unused
+ How the GPS coordinates are formatted on the OLED screen. */
     meshtastic_Config_DisplayConfig_GpsCoordinateFormat gps_format;
     /* Automatically toggles to the next page on the screen like a carousel, based the specified interval in seconds.
  Potentially useful for devices without user buttons. */
@@ -677,8 +682,8 @@ extern "C" {
 #define _meshtastic_Config_DisplayConfig_DisplayUnits_ARRAYSIZE ((meshtastic_Config_DisplayConfig_DisplayUnits)(meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL+1))
 
 #define _meshtastic_Config_DisplayConfig_OledType_MIN meshtastic_Config_DisplayConfig_OledType_OLED_AUTO
-#define _meshtastic_Config_DisplayConfig_OledType_MAX meshtastic_Config_DisplayConfig_OledType_OLED_SH1107_128_64
-#define _meshtastic_Config_DisplayConfig_OledType_ARRAYSIZE ((meshtastic_Config_DisplayConfig_OledType)(meshtastic_Config_DisplayConfig_OledType_OLED_SH1107_128_64+1))
+#define _meshtastic_Config_DisplayConfig_OledType_MAX meshtastic_Config_DisplayConfig_OledType_OLED_SH1107_128_128
+#define _meshtastic_Config_DisplayConfig_OledType_ARRAYSIZE ((meshtastic_Config_DisplayConfig_OledType)(meshtastic_Config_DisplayConfig_OledType_OLED_SH1107_128_128+1))
 
 #define _meshtastic_Config_DisplayConfig_DisplayMode_MIN meshtastic_Config_DisplayConfig_DisplayMode_DEFAULT
 #define _meshtastic_Config_DisplayConfig_DisplayMode_MAX meshtastic_Config_DisplayConfig_DisplayMode_COLOR
@@ -689,8 +694,8 @@ extern "C" {
 #define _meshtastic_Config_DisplayConfig_CompassOrientation_ARRAYSIZE ((meshtastic_Config_DisplayConfig_CompassOrientation)(meshtastic_Config_DisplayConfig_CompassOrientation_DEGREES_270_INVERTED+1))
 
 #define _meshtastic_Config_LoRaConfig_RegionCode_MIN meshtastic_Config_LoRaConfig_RegionCode_UNSET
-#define _meshtastic_Config_LoRaConfig_RegionCode_MAX meshtastic_Config_LoRaConfig_RegionCode_KZ_863
-#define _meshtastic_Config_LoRaConfig_RegionCode_ARRAYSIZE ((meshtastic_Config_LoRaConfig_RegionCode)(meshtastic_Config_LoRaConfig_RegionCode_KZ_863+1))
+#define _meshtastic_Config_LoRaConfig_RegionCode_MAX meshtastic_Config_LoRaConfig_RegionCode_BR_902
+#define _meshtastic_Config_LoRaConfig_RegionCode_ARRAYSIZE ((meshtastic_Config_LoRaConfig_RegionCode)(meshtastic_Config_LoRaConfig_RegionCode_BR_902+1))
 
 #define _meshtastic_Config_LoRaConfig_ModemPreset_MIN meshtastic_Config_LoRaConfig_ModemPreset_LONG_FAST
 #define _meshtastic_Config_LoRaConfig_ModemPreset_MAX meshtastic_Config_LoRaConfig_ModemPreset_SHORT_TURBO

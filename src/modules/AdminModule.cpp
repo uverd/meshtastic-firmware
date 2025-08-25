@@ -45,6 +45,10 @@
 #include "motion/AccelerometerThread.h"
 extern AccelerometerThread *accelerometerThread;
 #endif
+#if (defined(ARCH_ESP32) || defined(ARCH_NRF52) || defined(ARCH_RP2040)) && !defined(CONFIG_IDF_TARGET_ESP32S2) &&               \
+    !defined(CONFIG_IDF_TARGET_ESP32C3)
+#include "SerialModule.h"
+#endif
 
 AdminModule *adminModule;
 bool hasOpenEditTransaction;
@@ -503,7 +507,9 @@ bool AdminModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, meshta
     if (mp.decoded.want_response && !myReply) {
         myReply = allocErrorResponse(meshtastic_Routing_Error_NONE, &mp);
     }
-
+    if (mp.pki_encrypted) {
+        myReply->pki_encrypted = true;
+    }
     return handled;
 }
 
@@ -599,7 +605,6 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
         if (config.device.button_gpio == c.payload_variant.device.button_gpio &&
             config.device.buzzer_gpio == c.payload_variant.device.buzzer_gpio &&
             config.device.role == c.payload_variant.device.role &&
-            config.device.disable_triple_click == c.payload_variant.device.disable_triple_click &&
             config.device.rebroadcast_mode == c.payload_variant.device.rebroadcast_mode) {
             requiresReboot = false;
         }
@@ -642,7 +647,16 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
     case meshtastic_Config_position_tag:
         LOG_INFO("Set config: Position");
         config.has_position = true;
+        // If we have turned off the GPS (disabled or not present) and we're not using fixed position,
+        // clear the stored position since it may not get updated
+        if (config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_ENABLED &&
+            c.payload_variant.position.gps_mode != meshtastic_Config_PositionConfig_GpsMode_ENABLED &&
+            config.position.fixed_position == false && c.payload_variant.position.fixed_position == false) {
+            nodeDB->clearLocalPosition();
+            saveChanges(SEGMENT_NODEDATABASE | SEGMENT_CONFIG, false);
+        }
         config.position = c.payload_variant.position;
+
         // Save nodedb as well in case we got a fixed position packet
         break;
     case meshtastic_Config_power_tag:
@@ -710,6 +724,13 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
             requiresReboot = false;
         }
 
+#if defined(ARCH_PORTDUINO)
+        // If running on portduino and using SimRadio, do not require reboot
+        if (SimRadio::instance) {
+            requiresReboot = false;
+        }
+#endif
+
 #ifdef RF95_FAN_EN
         // Turn PA off if disabled by config
         if (c.payload_variant.lora.pa_fan_disabled) {
@@ -719,7 +740,7 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
         }
 #endif
         config.lora = c.payload_variant.lora;
-        // If we're setting region for the first time, init the region
+        // If we're setting region for the first time, init the region and regenerate the keys
         if (isRegionUnset && config.lora.region > meshtastic_Config_LoRaConfig_RegionCode_UNSET) {
             if (!owner.is_licensed) {
                 bool keygenSuccess = false;
@@ -764,8 +785,7 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
             if (config.security.private_key.size != 32) {
                 crypto->generateKeyPair(config.security.public_key.bytes, config.security.private_key.bytes);
 
-            } else if (config.security.public_key.size != 32) {
-                // We check for a potentially valid private key, and a blank public key, and regen the public key if needed.
+            } else {
                 if (crypto->regeneratePublicKey(config.security.public_key.bytes, config.security.private_key.bytes)) {
                     config.security.public_key.size = 32;
                 }
@@ -803,8 +823,13 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
 
 bool AdminModule::handleSetModuleConfig(const meshtastic_ModuleConfig &c)
 {
-    if (!hasOpenEditTransaction)
+    // If we are in an open transaction or configuring MQTT or Serial (which have validation), defer disabling Bluetooth
+    // Otherwise, disable Bluetooth to prevent the phone from interfering with the config
+    if (!hasOpenEditTransaction &&
+        !IS_ONE_OF(c.which_payload_variant, meshtastic_ModuleConfig_mqtt_tag, meshtastic_ModuleConfig_serial_tag)) {
         disableBluetooth();
+    }
+
     switch (c.which_payload_variant) {
     case meshtastic_ModuleConfig_mqtt_tag:
 #if MESHTASTIC_EXCLUDE_MQTT
@@ -815,12 +840,22 @@ bool AdminModule::handleSetModuleConfig(const meshtastic_ModuleConfig &c)
         if (!MQTT::isValidConfig(c.payload_variant.mqtt)) {
             return false;
         }
+        // Disable Bluetooth to prevent interference during MQTT configuration
+        disableBluetooth();
         moduleConfig.has_mqtt = true;
         moduleConfig.mqtt = c.payload_variant.mqtt;
 #endif
         break;
     case meshtastic_ModuleConfig_serial_tag:
         LOG_INFO("Set module config: Serial");
+#if (defined(ARCH_ESP32) || defined(ARCH_NRF52) || defined(ARCH_RP2040)) && !defined(CONFIG_IDF_TARGET_ESP32S2) &&               \
+    !defined(CONFIG_IDF_TARGET_ESP32C3)
+        if (!SerialModule::isValidConfig(c.payload_variant.serial)) {
+            LOG_ERROR("Invalid serial config");
+            return false;
+        }
+        disableBluetooth(); // Disable Bluetooth to prevent interference during Serial configuration
+#endif
         moduleConfig.has_serial = true;
         moduleConfig.serial = c.payload_variant.serial;
         break;
@@ -912,6 +947,9 @@ void AdminModule::handleGetOwner(const meshtastic_MeshPacket &req)
         res.which_payload_variant = meshtastic_AdminMessage_get_owner_response_tag;
         setPassKey(&res);
         myReply = allocDataProtobuf(res);
+        if (req.pki_encrypted) {
+            myReply->pki_encrypted = true;
+        }
     }
 }
 
@@ -976,12 +1014,16 @@ void AdminModule::handleGetConfig(const meshtastic_MeshPacket &req, const uint32
         // So even if we internally use 0 to represent 'use default' we still need to send the value we are
         // using to the app (so that even old phone apps work with new device loads).
         // r.get_radio_response.preferences.ls_secs = getPref_ls_secs();
-        // hideSecret(r.get_radio_response.preferences.wifi_ssid); // hmm - leave public for now, because only minimally private
-        // and useful for users to know current provisioning) hideSecret(r.get_radio_response.preferences.wifi_password);
-        // r.get_config_response.which_payloadVariant = Config_ModuleConfig_telemetry_tag;
+        // hideSecret(r.get_radio_response.preferences.wifi_ssid); // hmm - leave public for now, because only minimally
+        // private and useful for users to know current provisioning)
+        // hideSecret(r.get_radio_response.preferences.wifi_password); r.get_config_response.which_payloadVariant =
+        // Config_ModuleConfig_telemetry_tag;
         res.which_payload_variant = meshtastic_AdminMessage_get_config_response_tag;
         setPassKey(&res);
         myReply = allocDataProtobuf(res);
+        if (req.pki_encrypted) {
+            myReply->pki_encrypted = true;
+        }
     }
 }
 
@@ -1062,12 +1104,16 @@ void AdminModule::handleGetModuleConfig(const meshtastic_MeshPacket &req, const 
         // So even if we internally use 0 to represent 'use default' we still need to send the value we are
         // using to the app (so that even old phone apps work with new device loads).
         // r.get_radio_response.preferences.ls_secs = getPref_ls_secs();
-        // hideSecret(r.get_radio_response.preferences.wifi_ssid); // hmm - leave public for now, because only minimally private
-        // and useful for users to know current provisioning) hideSecret(r.get_radio_response.preferences.wifi_password);
-        // r.get_config_response.which_payloadVariant = Config_ModuleConfig_telemetry_tag;
+        // hideSecret(r.get_radio_response.preferences.wifi_ssid); // hmm - leave public for now, because only minimally
+        // private and useful for users to know current provisioning)
+        // hideSecret(r.get_radio_response.preferences.wifi_password); r.get_config_response.which_payloadVariant =
+        // Config_ModuleConfig_telemetry_tag;
         res.which_payload_variant = meshtastic_AdminMessage_get_module_config_response_tag;
         setPassKey(&res);
         myReply = allocDataProtobuf(res);
+        if (req.pki_encrypted) {
+            myReply->pki_encrypted = true;
+        }
     }
 }
 
@@ -1092,6 +1138,9 @@ void AdminModule::handleGetNodeRemoteHardwarePins(const meshtastic_MeshPacket &r
     }
     setPassKey(&r);
     myReply = allocDataProtobuf(r);
+    if (req.pki_encrypted) {
+        myReply->pki_encrypted = true;
+    }
 }
 
 void AdminModule::handleGetDeviceMetadata(const meshtastic_MeshPacket &req)
@@ -1101,6 +1150,9 @@ void AdminModule::handleGetDeviceMetadata(const meshtastic_MeshPacket &req)
     r.which_payload_variant = meshtastic_AdminMessage_get_device_metadata_response_tag;
     setPassKey(&r);
     myReply = allocDataProtobuf(r);
+    if (req.pki_encrypted) {
+        myReply->pki_encrypted = true;
+    }
 }
 
 void AdminModule::handleGetDeviceConnectionStatus(const meshtastic_MeshPacket &req)
@@ -1169,6 +1221,9 @@ void AdminModule::handleGetDeviceConnectionStatus(const meshtastic_MeshPacket &r
     r.which_payload_variant = meshtastic_AdminMessage_get_device_connection_status_response_tag;
     setPassKey(&r);
     myReply = allocDataProtobuf(r);
+    if (req.pki_encrypted) {
+        myReply->pki_encrypted = true;
+    }
 }
 
 void AdminModule::handleGetChannel(const meshtastic_MeshPacket &req, uint32_t channelIndex)
@@ -1180,6 +1235,9 @@ void AdminModule::handleGetChannel(const meshtastic_MeshPacket &req, uint32_t ch
         r.which_payload_variant = meshtastic_AdminMessage_get_channel_response_tag;
         setPassKey(&r);
         myReply = allocDataProtobuf(r);
+        if (req.pki_encrypted) {
+            myReply->pki_encrypted = true;
+        }
     }
 }
 
@@ -1189,6 +1247,9 @@ void AdminModule::handleGetDeviceUIConfig(const meshtastic_MeshPacket &req)
     r.which_payload_variant = meshtastic_AdminMessage_get_ui_config_response_tag;
     r.get_ui_config_response = uiconfig;
     myReply = allocDataProtobuf(r);
+    if (req.pki_encrypted) {
+        myReply->pki_encrypted = true;
+    }
 }
 
 void AdminModule::reboot(int32_t seconds)
